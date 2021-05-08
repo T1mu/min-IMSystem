@@ -71,6 +71,22 @@ func (c *Client) publicChat() bool {
 	return false
 }
 
+// privateChat 通过conn写入实现私人聊天
+func (c *Client) privateChat() bool {
+	var name, msg string
+	fmt.Println("请输入私人聊天对方名称")
+	fmt.Scanln(&name)
+	fmt.Println("请输入私人聊天内容")
+	fmt.Scanln(&msg)
+	msg = "to|" + name + "|" + msg + "\n"
+	_, err := c.conn.Write([]byte(msg))
+	if err != nil {
+		fmt.Println("数据流写入出错", err)
+		return false
+	}
+	return true
+}
+
 // updateName 通过conn写入rename|新名称数据，模拟用户修改名称
 func (c *Client) updateName() bool {
 	fmt.Println(">>>>>>>>请输入用户名")
@@ -84,7 +100,7 @@ func (c *Client) updateName() bool {
 	return true
 }
 
-// dealResponse 读conn消息
+// dealResponse 阻塞状态读取conn消息
 func (c *Client) dealResponse() {
 	io.Copy(os.Stdout, c.conn) //注意：此方法永久阻塞，不会只执行一次
 	// 其含义是将c.conn的数据读到标准输出上
@@ -102,7 +118,7 @@ func (c *Client) Run() {
 		case 1:	// 公共聊天
 			c.publicChat()
 		case 2:	// 私聊
-			fmt.Println(">>>>>>>>选择私聊模式成功")
+			c.privateChat()
 		case 3:
 			c.updateName()
 		}
