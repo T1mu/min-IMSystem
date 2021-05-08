@@ -16,7 +16,7 @@ type Client struct {
 	flg        int
 }
 
-// NewClient 创建客户端
+// NewClient 创建客户端，为客户端对象分配服务端IP和端口号
 func NewClient(serverIp string, serverPort int) *Client {
 	// 创建客户端
 	client := &Client{
@@ -24,7 +24,8 @@ func NewClient(serverIp string, serverPort int) *Client {
 		ServerPort: serverPort,
 		flg:        999, //flg若为默认值0，则Run方法第一次执行即退出循环
 	}
-	// 连接服务器，获取返回的conn
+	// 通过net库的Dial方法接服务器，获取返回的连接conn
+	// 注意：conn是客户端与用户端直接通信的唯一媒介，通信的方法是conn的Read Write方法
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", client.ServerIp, client.ServerPort))
 	if err != nil {
 		fmt.Println("拨号过程出现错误\n", err)
@@ -39,16 +40,17 @@ func NewClient(serverIp string, serverPort int) *Client {
 func (c *Client) menu() bool {
 	// 用户输入数字变量
 	var flg int
-	// 打印用户操作提示
+	// 打印用户可操作提示
 	fmt.Println("1 - 公聊模式")
 	fmt.Println("2 - 私聊模式")
 	fmt.Println("3 - 更新用户名")
+	fmt.Println("4 - 查询在线用户信息")
 	fmt.Println("0 - 退出")
 	// 读取用户输入数字
 	fmt.Scanln(&flg)
 
-	// 判断数字合法性
-	if flg >= 0 && flg < 5 {
+	// 判断输入数字的合法性
+	if flg >= 0 && flg < 6 {
 		// 将操作模式赋予客户端对象flg属性
 		c.flg = flg
 		return true
@@ -58,7 +60,7 @@ func (c *Client) menu() bool {
 	}
 }
 
-// publicChat 通过conn实现公共聊天
+// publicChat 通过conn写入方法，实现公共聊天
 func (c *Client) publicChat() bool {
 	var msg string
 	fmt.Println(">>>>>>>>请输入公聊内容")
@@ -71,7 +73,7 @@ func (c *Client) publicChat() bool {
 	return false
 }
 
-// privateChat 通过conn写入实现私人聊天
+// privateChat 通过conn写入方法，实现私人聊天
 func (c *Client) privateChat() bool {
 	var name, msg string
 	fmt.Println("请输入私人聊天对方名称")
@@ -100,6 +102,16 @@ func (c *Client) updateName() bool {
 	return true
 }
 
+// catUserInfo	通过模拟who命令查询在线人数
+func (c *Client) catUserInfo() bool {
+	_, err := c.conn.Write([]byte("who\n"))
+	if err != nil {
+		fmt.Println("数据流写入出错:", err)
+		return false
+	}
+	return true
+}
+
 // dealResponse 阻塞状态读取conn消息
 func (c *Client) dealResponse() {
 	io.Copy(os.Stdout, c.conn) //注意：此方法永久阻塞，不会只执行一次
@@ -114,13 +126,16 @@ func (c *Client) Run() {
 		// 注意：每次调用客户端对象的menu方法都会打印操作提示文本，并且设置c.flg的值
 		for c.menu() != true {
 		}
+		// 根据c.flg的值执行不同的业务处理函数
 		switch c.flg {
-		case 1:	// 公共聊天
+		case 1: // 公共聊天
 			c.publicChat()
-		case 2:	// 私聊
+		case 2: // 私聊
 			c.privateChat()
-		case 3:
+		case 3:	// 更新用户名
 			c.updateName()
+		case 4:	// 获取当前用户信息
+			c.catUserInfo()
 		}
 	}
 }
