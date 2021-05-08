@@ -29,15 +29,16 @@ func NewServer(ip string, port int) *Server {
 }
 
 // BroadCast send global message to GlobChan
-func (p *Server) BroadCast(user *User, msg string) {
+// 将string类型的msg变量发送到Server对象的GlobChan管道变量中
+func (s *Server) BroadCast(user *User, msg string) {
 	msg = "[" + user.Addr + "]: " + user.Name + ": " + msg
-	p.GlobChan <- msg
+	s.GlobChan <- msg
 }
 
 // Handler 连接成功的回调函数，具体功能：若服务端与用户端建立连接。
 // 首先, 将用户数据放入用户数据表中，并将用户上线信息放入公共管道中。
-func (p *Server) Handler(conn net.Conn) {
-	user := NewUser(conn, p)
+func (s *Server) Handler(conn net.Conn) {
+	user := NewUser(conn, s)
 	// user模块 上线功能
 	user.Online()
 	// 提示有用户进入
@@ -82,30 +83,31 @@ func (p *Server) Handler(conn net.Conn) {
 }
 
 // listenGlobChan 监听管道
-func (p *Server) listenGlobChan() {
+func (s *Server) listenGlobChan() {
 	for {
-		msg := <-p.GlobChan
-		p.UserMapMutex.Lock()
-		for _, i := range p.UserMap {
+		// 读取GlobChan管道消息
+		msg := <-s.GlobChan
+		s.UserMapMutex.Lock()
+		for _, i := range s.UserMap {
 			i.C <- msg
 		}
-		p.UserMapMutex.Unlock()
+		s.UserMapMutex.Unlock()
 	}
 }
 
 // Start 开始服务，分为监听IP、端口，若有则返回一个listner。
 // 通过listener建立连接，返回conn。
 // 再通过conn，处理相应Handler
-func (p *Server) Start() {
-	// 监听服务
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", p.IP, p.Port))
+func (s *Server) Start() {
+	// 监听服务，获取listener，为以后的Accept获取conn打下基础
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.IP, s.Port))
 	if err != nil {
-		fmt.Println("监听错误", err)
+		fmt.Println("监听错误:", err)
 	}
 	// 退出前关闭监听器
 	defer listener.Close()
 	// 监听通道
-	go p.listenGlobChan()
+	go s.listenGlobChan()
 	// 通过轮询监听器 建立连接
 	for {
 		conn, err := listener.Accept()
@@ -113,8 +115,7 @@ func (p *Server) Start() {
 			fmt.Println("建立连接错误\n", err)
 			continue
 		}
-		// 通过连接 做自己想做的事情 Handler
-		go p.Handler(conn)
+		// 通过连接，处理连接中的数据
+		go s.Handler(conn)
 	}
-	// 监听通道GlobChan
 }
