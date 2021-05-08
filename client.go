@@ -58,6 +58,19 @@ func (c *Client) menu() bool {
 	}
 }
 
+// publicChat 通过conn实现公共聊天
+func (c *Client) publicChat() bool {
+	var msg string
+	fmt.Println(">>>>>>>>请输入公聊内容")
+	fmt.Scanln(&msg)
+	_, err := c.conn.Write([]byte(msg))
+	if err != nil {
+		fmt.Println("数据流写入出错", err)
+		return true
+	}
+	return false
+}
+
 // updateName 通过conn写入rename|新名称数据，模拟用户修改名称
 func (c *Client) updateName() bool {
 	fmt.Println(">>>>>>>>请输入用户名")
@@ -86,14 +99,12 @@ func (c *Client) Run() {
 		for c.menu() != true {
 		}
 		switch c.flg {
-		case 1:
-			fmt.Println(">>>>>>>>选择公聊模式成功")
-		case 2:
+		case 1:	// 公共聊天
+			c.publicChat()
+		case 2:	// 私聊
 			fmt.Println(">>>>>>>>选择私聊模式成功")
 		case 3:
 			c.updateName()
-			fmt.Println(">>>>>>>>选择更新用户名成功")
-			break
 		}
 	}
 }
