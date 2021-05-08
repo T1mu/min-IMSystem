@@ -41,7 +41,7 @@ func (p *Server) Handler(conn net.Conn) {
 	// user模块 上线功能
 	user.Online()
 	// 提示有用户进入
-	fmt.Sprintf("有新用户进入，其地址为%s",user.Addr)
+	fmt.Sprintf("有新用户进入，其地址为%s", user.Addr)
 	// 用户操作激活标志位
 	alive := make(chan bool)
 	// 接受客户端发送的消息
@@ -58,6 +58,7 @@ func (p *Server) Handler(conn net.Conn) {
 				return
 			}
 			msg := string(buff[:n-1])
+			fmt.Println("服务端读到的内容:", msg)
 			user.DoMsg(msg)
 			alive <- true
 		}

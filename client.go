@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net"
+	"os"
 )
 
 type Client struct {
@@ -20,7 +22,7 @@ func NewClient(serverIp string, serverPort int) *Client {
 	client := &Client{
 		ServerIp:   serverIp,
 		ServerPort: serverPort,
-		flg:        999,	//flg若为默认值0，则Run方法第一次执行即退出循环
+		flg:        999, //flg若为默认值0，则Run方法第一次执行即退出循环
 	}
 	// 连接服务器，获取返回的conn
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", client.ServerIp, client.ServerPort))
@@ -56,11 +58,31 @@ func (c *Client) menu() bool {
 	}
 }
 
+// updateName 通过conn写入rename|新名称数据，模拟用户修改名称
+func (c *Client) updateName() bool {
+	fmt.Println(">>>>>>>>请输入用户名")
+	fmt.Scanln(&c.Name)
+	sendMsg := "rename|" + c.Name + "\n"
+	_, err := c.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("数据流写入出错:", err)
+		return false
+	}
+	return true
+}
+
+// dealResponse 读conn消息
+func (c *Client) dealResponse() {
+	io.Copy(os.Stdout, c.conn) //注意：此方法永久阻塞，不会只执行一次
+	// 其含义是将c.conn的数据读到标准输出上
+
+}
+
 // Run 根据不同的模式处理不同的业务
 func (c *Client) Run() {
 	for c.flg != 0 {
 		// 若用户输入一直为错，则一直调用menu
-		// 注意：每次调用客户端对象的menu方法都会打印操作提示文本
+		// 注意：每次调用客户端对象的menu方法都会打印操作提示文本，并且设置c.flg的值
 		for c.menu() != true {
 		}
 		switch c.flg {
@@ -69,7 +91,9 @@ func (c *Client) Run() {
 		case 2:
 			fmt.Println(">>>>>>>>选择私聊模式成功")
 		case 3:
+			c.updateName()
 			fmt.Println(">>>>>>>>选择更新用户名成功")
+			break
 		}
 	}
 }
@@ -96,6 +120,8 @@ func main() {
 	}
 	// 提示用户创建成功
 	fmt.Println(">>>>>>>>连接服务器成功")
+	// 启动一个go程读
+	go client.dealResponse()
 	// 客户端处理业务
 	client.Run()
 }
