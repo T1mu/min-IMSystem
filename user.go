@@ -46,7 +46,7 @@ func (u *User) Offline() {
 
 // SendMsg 向指定用户的客户端写消息
 func (u *User) SendMsg(msg string) {
-	u.Conn.Write([]byte(msg))
+	u.Conn.Write([]byte(msg + "\n"))
 }
 
 // DoMsg 用户处理消息
